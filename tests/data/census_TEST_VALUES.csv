@@ -1,0 +1,5 @@
+year,census_date,batangas,cavite,laguna,quezon,lucena,rizal,total,source,notes
+1970,1970-01-01,100000,100000,100000,100000,10000,100000,,TEST VALUES (not real data),total left empty on purpose (should become 510000)
+2000,2000-05-01,200000,200000,200000,200000,20000,200000,1020000,TEST VALUES (not real data),total matches the sum of areas
+2015,2015-08-01,300000,300000,300000,300000,30000,300000,,TEST VALUES (not real data),date used to check 2015.58
+2024,,,,,,,,,,year not entered yet (should be skipped)

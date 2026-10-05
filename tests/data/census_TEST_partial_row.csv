@@ -1,0 +1,2 @@
+year,census_date,batangas,cavite,laguna,quezon,lucena,rizal,total,source,notes
+1970,1970-01-01,100000,100000,100000,100000,10000,,,TEST VALUES (not real data),rizal missing on purpose (should give an error)

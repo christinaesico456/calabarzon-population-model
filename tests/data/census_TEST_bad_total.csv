@@ -1,0 +1,2 @@
+year,census_date,batangas,cavite,laguna,quezon,lucena,rizal,total,source,notes
+2000,2000-05-01,200000,200000,200000,200000,20000,200000,1030000,TEST VALUES (not real data),total does NOT match the sum of areas on purpose (should give an error)
