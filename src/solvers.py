@@ -83,3 +83,59 @@ def euler_solve(rate_func, N0, params, t_end, dt):
             N[k + 1] = 0
 
     return t, N
+
+
+
+def rk4_solve(rate_func, N0, params, t_end, dt):
+    """
+    Solve dN/dt = rate_func(N, params) using the 4th-order Runge-Kutta method.
+
+    RK4 update:
+        k1 = f(N)
+        k2 = f(N + dt/2 * k1)
+        k3 = f(N + dt/2 * k2)
+        k4 = f(N + dt * k3)
+        N[k+1] = N[k] + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
+
+    Used as a cross-check for euler_solve. Same inputs and outputs.
+
+    Parameters
+    ----------
+    rate_func : function
+        Rate function from models.py, e.g. rate_v1 or rate_v2.
+    N0 : float
+        Population at t = 0 (persons).
+    params : dict
+        Model parameters passed to rate_func.
+    t_end : float
+        End time (years since start year).
+    dt : float
+        Time step (years).
+
+    Returns
+    -------
+    t : numpy array
+        Time points (years).
+    N : numpy array
+        Population at each time point (persons).
+    """
+    t = make_time_grid(t_end, dt)
+
+    N = np.zeros(len(t))
+    N[0] = N0
+
+    for k in range(len(t) - 1):
+        # Four slope estimates within one time step
+        k1 = rate_func(N[k], params)                  # slope at the start
+        k2 = rate_func(N[k] + dt / 2 * k1, params)    # slope at the midpoint (using k1)
+        k3 = rate_func(N[k] + dt / 2 * k2, params)    # slope at the midpoint (using k2)
+        k4 = rate_func(N[k] + dt * k3, params)        # slope at the end (using k3)
+
+        # Weighted average of the four slopes
+        N[k + 1] = N[k] + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+
+        # Boundary condition: population cannot go below 0
+        if N[k + 1] < 0:
+            N[k + 1] = 0
+
+    return t, N
