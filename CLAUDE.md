@@ -41,7 +41,7 @@ This file gives you (Claude Code) the full context of this project. Read it full
   - **V2:** logistic growth with net migration (relaxes "unlimited resources" and "closed population")
   - **V3:** V2 used for sensitivity analysis, scenarios, and forecasting
 - **Numerical method:** Euler (main, explainable), RK4 as cross-check. Δt = 0.1 year.
-- **Proposed, not yet confirmed by the group:** in V2, r and K are **calibrated** from census data (not taken from vital statistics). Ask me to confirm before building calibration.
+- **Confirmed by the group (October 5, 2026):** in V2, r and K are **calibrated** from the 1970–2010 census data (not taken from vital statistics).
 
 ## 4. Mathematical model
 
@@ -182,7 +182,29 @@ Every graph must state x-axis, y-axis, units, and purpose. No decorative graphs.
 ## 9. Current status
 
 - Phases 1 to 3 (research, model selection, mathematical model) are done and documented in Google Docs.
-- Coding is starting **from scratch** in VS Code. Begin at **Build order step 1** unless I say otherwise.
 - Deadline not yet confirmed. Tentative 4-week plan started October 5, 2026: Week 1 code + verification, Week 2 data + calibration + validation, Week 3 sensitivity + scenarios + results, Week 4 paper review + code walkthrough for groupmates.
 
-**Start by:** confirming you understand the project in a few sentences, then guide me through Build order step 1.
+**Build order steps 1 to 9 are done** (all tested with TEST VALUES only, no real data used yet):
+
+| Step | Done | Where |
+|---|---|---|
+| 1 | Environment, `.venv`, `requirements.txt` (pip freeze style), `.gitignore`, Git repo | project root |
+| 2–3 | `rate_v1`, `rate_v2` | `src/models.py` |
+| 4–5 | `make_time_grid`, `euler_solve`, `rk4_solve` (N ≥ 0 boundary in both) | `src/solvers.py` |
+| 6 | `exact_v1`, `exact_logistic`, `equilibrium_v2` | `src/exact.py` |
+| 7 | First test run + V2 migration graph | `scripts/test_run.py` |
+| 8 | 12 verification tests, all PASS; Euler error graph | `tests/verify.py`, `scripts/plot_verification.py` |
+| 9 | `load_census` + 7 loader checks, all PASS | `src/data_loader.py`, `tests/check_data_loader.py`, `tests/data/` |
+
+**Data templates exist but are still empty** (Tina is filling them in from PSA sources):
+- `data/calabarzon_census.csv`: population by area, 11 census years
+- `data/calabarzon_vital_stats.csv`: registered births and deaths, 1970 to 2024
+- Entry rules and pitfalls: `data/README.md`
+
+**Conventions already set:**
+- Run scripts and tests from the project folder with `python -m`, e.g. `python -m tests.verify`.
+- Outputs made from TEST VALUES are named `results/TEST_*` and are ignored by Git.
+- In the data loader, t = 0 at the **1970 census date** (not January 1, 1970), so a calendar year Y is t = Y − (1970 census decimal year).
+- Verification tolerance is 0.5% max relative error. Revisit it after RQ1 gives the real MAPE.
+
+**Next:** Step 10 (net migration estimate), after the data is filled in. Open question for Step 10: census dates fall partway through a year but births and deaths are per calendar year, so a rule for the partial years at each end of a period must be chosen and explained.
