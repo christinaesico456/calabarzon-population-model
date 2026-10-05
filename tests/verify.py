@@ -58,7 +58,10 @@ def test_euler_vs_exact_v1():
 
 
 def test_euler_vs_exact_logistic():
-    """Euler solution of V2 with M = 0 should match the exact logistic formula."""
+    """
+    Euler solution of V2 with M = 0 should match the exact logistic formula.
+    This also covers the property "M = 0 reduces to logistic".
+    """
     params = {"r": 0.05, "K": 20000000, "M": 0}   # TEST VALUES
     N0 = 5000000                                 # TEST VALUE
 
@@ -70,7 +73,6 @@ def test_euler_vs_exact_logistic():
             "max relative error < 0.5%",
             f"{error * 100:.4f}%",
             pass_or_fail(error < TOLERANCE)]
-
 
 
 def test_error_halves_with_dt():
@@ -120,15 +122,78 @@ def test_euler_vs_rk4_with_migration():
             "max relative difference < 0.5%",
             f"{difference * 100:.4f}%",
             pass_or_fail(difference < TOLERANCE)]
+
+
+def test_birth_equals_death_constant():
+    """If b = d, then dN/dt = 0, so the population should never change."""
+    params = {"b": 0.02, "d": 0.02}   # TEST VALUES
+    N0 = 1000000                      # TEST VALUE
+
+    t, N = euler_solve(rate_v1, N0, params, T_END, DT)
+    largest_change = np.max(np.abs(N - N0))
+
+    return ["b = d stays constant (V1)",
+            "N stays at N0 (change < 1e-6)",
+            f"{largest_change:.2e} persons",
+            pass_or_fail(largest_change < 1e-6)]
+
+
+def test_v2_reduces_to_v1():
+    """With K = infinity and M = 0, V2 becomes dN/dt = rN, which is V1 with r = b - d."""
+    params_v1 = {"b": 0.025, "d": 0.006}   # TEST VALUES
+    params_v2 = {"r": params_v1["b"] - params_v1["d"], "K": float("inf"), "M": 0}
+    N0 = 1000000                           # TEST VALUE
+
+    t, N_v1 = euler_solve(rate_v1, N0, params_v1, T_END, DT)
+    t, N_v2 = euler_solve(rate_v2, N0, params_v2, T_END, DT)
+    difference = max_relative_error(N_v2, N_v1)
+
+    return ["V2 with K = inf, M = 0 equals V1",
+            "max relative difference < 1e-10%",
+            f"{difference * 100:.2e}%",
+            pass_or_fail(difference * 100 < 1e-10)]
+
+
+def test_start_at_K_stays_at_K():
+    """If N0 = K and M = 0, then 1 - N/K = 0, so the population should stay at K."""
+    params = {"r": 0.05, "K": 20000000, "M": 0}   # TEST VALUES
+    N0 = params["K"]
+
+    t, N = euler_solve(rate_v2, N0, params, T_END, DT)
+    largest_change = np.max(np.abs(N - params["K"]) / params["K"])
+
+    return ["N0 = K stays at K",
+            "change from K < 1e-10%",
+            f"{largest_change * 100:.2e}%",
+            pass_or_fail(largest_change * 100 < 1e-10)]
+
+
+def test_above_K_declines():
+    """If N0 > K and M = 0, then 1 - N/K < 0, so N should fall toward K but not below it."""
+    params = {"r": 0.05, "K": 20000000, "M": 0}   # TEST VALUES
+    N0 = 25000000                                # TEST VALUE (above K)
+    K = params["K"]
+
+    t, N = euler_solve(rate_v2, N0, params, T_END, DT)
+
+    always_decreasing = np.all(np.diff(N) < 0)   # every step goes down
+    stays_above_K = np.all(N > K)                 # never drops below K
+
+    return ["N0 > K declines toward K",
+            "falls every step, stays above K",
+            f"{N[0] / 1e6:.2f}M down to {N[-1] / 1e6:.2f}M",
+            pass_or_fail(always_decreasing and stays_above_K)]
+
+
 # ------------------------------------------------------------
 # Run all tests and print the table
 # ------------------------------------------------------------
 def print_table(rows):
     """Print the results as a table: Test | Expected Result | Actual Result | Status."""
-    print(f"{'Test':<36}{'Expected Result':<30}{'Actual Result':<16}{'Status'}")
-    print("-" * 88)
+    print(f"{'Test':<36}{'Expected Result':<36}{'Actual Result':<26}{'Status'}")
+    print("-" * 104)
     for row in rows:
-        print(f"{row[0]:<36}{row[1]:<30}{row[2]:<16}{row[3]}")
+        print(f"{row[0]:<36}{row[1]:<36}{row[2]:<26}{row[3]}")
 
 
 rows = [
@@ -137,6 +202,10 @@ rows = [
     test_error_halves_with_dt(),
     test_rk4_vs_exact_v1(),
     test_euler_vs_rk4_with_migration(),
+    test_birth_equals_death_constant(),
+    test_v2_reduces_to_v1(),
+    test_start_at_K_stays_at_K(),
+    test_above_K_declines(),
 ]
 
 print("VERIFICATION TESTS (all inputs are TEST VALUES)")
