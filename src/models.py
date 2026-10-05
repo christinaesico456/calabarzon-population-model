@@ -30,3 +30,33 @@ def rate_v1(N, params):
     d = params["d"]
 
     return (b - d) * N
+
+
+
+def rate_v2(N, params):
+    """
+    V2: Logistic growth with net migration.
+
+    Equation: dN/dt = r * N * (1 - N/K) + M
+
+    Parameters
+    ----------
+    N : float
+        Current population (persons).
+    params : dict
+        params["r"] : intrinsic growth rate (1/year), calibrated from census
+        params["K"] : carrying capacity (persons)
+        params["M"] : net migration, in minus out (persons/year)
+
+    Returns
+    -------
+    float
+        Rate of change of population (persons/year).
+    """
+    r = params["r"]
+    K = params["K"]
+    M = params["M"]
+
+    natural_increase = r * N * (1 - N / K)
+
+    return natural_increase + M
