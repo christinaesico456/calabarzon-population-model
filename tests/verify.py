@@ -12,7 +12,7 @@ import numpy as np
 
 from src.models import rate_v1, rate_v2
 from src.solvers import euler_solve, rk4_solve
-from src.exact import exact_v1, exact_logistic
+from src.exact import exact_v1, exact_logistic, equilibrium_v2
 
 
 # ------------------------------------------------------------
@@ -21,6 +21,11 @@ from src.exact import exact_v1, exact_logistic
 T_END = 80          # years (same length as 1970 to 2050)
 DT = 0.1            # time step (years)
 TOLERANCE = 0.005   # largest allowed relative error (0.5%)
+
+# Only for the equilibrium test: long enough for the run to settle at N*.
+# This is NOT a projection period. With M < 0 the approach is slow
+# (still 0.0036% away after 300 years), so we use 500 years.
+T_LONG = 500
 
 
 # ------------------------------------------------------------
@@ -185,6 +190,40 @@ def test_above_K_declines():
             pass_or_fail(always_decreasing and stays_above_K)]
 
 
+def test_equilibrium_matches_simulation(M):
+    """A long V2 run should settle at N* = (K/2) * [1 + sqrt(1 + 4M / (rK))]."""
+    params = {"r": 0.05, "K": 20000000, "M": M}   # TEST VALUES
+    N0 = 5000000                                 # TEST VALUE
+
+    t, N = euler_solve(rate_v2, N0, params, T_LONG, DT)
+    N_star = equilibrium_v2(params)
+    difference = abs(N[-1] - N_star) / N_star
+
+    # {M:+,} shows the sign and a comma separator, e.g. +100,000
+    return [f"Equilibrium matches (M = {M:+,})",
+            "final N within 0.01% of N*",
+            f"{difference * 100:.2e}%",
+            pass_or_fail(difference * 100 < 0.01)]
+
+
+def test_large_negative_M_never_negative():
+    """If M < -rK/4 there is no equilibrium: N should fall to 0 and never go below it."""
+    params = {"r": 0.05, "K": 20000000, "M": -500000}   # TEST VALUES (-rK/4 = -250,000)
+    N0 = 5000000                                       # TEST VALUE
+
+    t, N_euler = euler_solve(rate_v2, N0, params, T_END, DT)
+    t, N_rk4 = rk4_solve(rate_v2, N0, params, T_END, DT)
+
+    never_negative = np.all(N_euler >= 0) and np.all(N_rk4 >= 0)
+    ends_at_zero = N_euler[-1] == 0 and N_rk4[-1] == 0
+    no_equilibrium = equilibrium_v2(params) is None
+
+    return ["Large negative M (collapse)",
+            "N never < 0, ends at 0, no N*",
+            f"min N: Euler {N_euler.min():.0f}, RK4 {N_rk4.min():.0f}",
+            pass_or_fail(never_negative and ends_at_zero and no_equilibrium)]
+
+
 # ------------------------------------------------------------
 # Run all tests and print the table
 # ------------------------------------------------------------
@@ -206,6 +245,9 @@ rows = [
     test_v2_reduces_to_v1(),
     test_start_at_K_stays_at_K(),
     test_above_K_declines(),
+    test_equilibrium_matches_simulation(100000),
+    test_equilibrium_matches_simulation(-100000),
+    test_large_negative_M_never_negative(),
 ]
 
 print("VERIFICATION TESTS (all inputs are TEST VALUES)")
