@@ -1,0 +1,3 @@
+year,births,deaths,crude_birth_rate,crude_death_rate,source,notes
+2000,100,20,,,TEST VALUES,
+2001,100,,,,TEST VALUES,deaths missing on purpose

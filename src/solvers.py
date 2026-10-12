@@ -139,3 +139,39 @@ def rk4_solve(rate_func, N0, params, t_end, dt):
             N[k + 1] = 0
 
     return t, N
+
+
+def solve_at_times(rate_func, N0, params, t_points, dt):
+    """
+    Population at chosen times (for example census dates), using Euler.
+
+    Census dates such as t = 39.99 do not fall exactly on the dt grid
+    (0, 0.1, 0.2, ...). So Euler runs just past the last chosen time, and
+    the population at each chosen time is read from the two nearest grid
+    points by straight-line interpolation (np.interp).
+
+    Parameters
+    ----------
+    rate_func : function
+        Rate function from models.py, e.g. rate_v1 or rate_v2.
+    N0 : float
+        Population at t = 0 (persons).
+    params : dict
+        Model parameters passed to rate_func.
+    t_points : numpy array
+        Chosen times (years since t = 0), all 0 or more.
+    dt : float
+        Time step (years).
+
+    Returns
+    -------
+    numpy array
+        Population at each chosen time (persons).
+    """
+    # Smallest whole number of steps that reaches the last chosen time
+    n_steps = int(np.ceil(np.max(t_points) / dt))
+
+    t, N = euler_solve(rate_func, N0, params, n_steps * dt, dt)
+
+    # Read the population at each chosen time from the grid
+    return np.interp(t_points, t, N)

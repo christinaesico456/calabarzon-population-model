@@ -110,3 +110,50 @@ def load_census(path="data/calabarzon_census.csv"):
     data = data.reset_index(drop=True)
 
     return data
+
+
+def load_vital_stats(path="data/calabarzon_vital_stats.csv"):
+    """
+    Load the vital statistics CSV (registered births and deaths per calendar year).
+
+    Only the counts (births, deaths) are used, because the balancing equation
+    for net migration needs numbers of persons, not rates.
+
+    Checks done while loading:
+    - Years with neither births nor deaths entered are skipped (not entered yet).
+    - Years with only one of the two entered stop with an error.
+    - Counts cannot be negative.
+
+    Parameters
+    ----------
+    path : str
+        Location of the vital statistics CSV file.
+
+    Returns
+    -------
+    pandas DataFrame
+        One row per entered year, sorted by year, with columns year, births, deaths.
+    """
+    data = pd.read_csv(path)
+
+    # 1. Keep only years where births or deaths was entered
+    entered = data[["births", "deaths"]].notna().any(axis=1)
+    data = data[entered].copy()
+
+    if len(data) == 0:
+        print("Note: no births or deaths have been entered yet in", path)
+        return data[["year", "births", "deaths"]]
+
+    # 2. Every entered year needs both counts, and they cannot be negative
+    for i in data.index:
+        year = data.loc[i, "year"]
+
+        if data.loc[i, ["births", "deaths"]].isna().any():
+            raise ValueError(f"Year {year}: births or deaths is missing.")
+
+        if data.loc[i, "births"] < 0 or data.loc[i, "deaths"] < 0:
+            raise ValueError(f"Year {year}: births and deaths cannot be negative.")
+
+    data = data.sort_values("year").reset_index(drop=True)
+
+    return data[["year", "births", "deaths"]]
