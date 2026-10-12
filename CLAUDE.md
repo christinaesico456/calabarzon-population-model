@@ -196,15 +196,38 @@ Every graph must state x-axis, y-axis, units, and purpose. No decorative graphs.
 | 8 | 12 verification tests, all PASS; Euler error graph | `tests/verify.py`, `scripts/plot_verification.py` |
 | 9 | `load_census` + 7 loader checks, all PASS | `src/data_loader.py`, `tests/check_data_loader.py`, `tests/data/` |
 
-**Data templates exist but are still empty** (Tina is filling them in from PSA sources):
-- `data/calabarzon_census.csv`: population by area, 11 census years
-- `data/calabarzon_vital_stats.csv`: registered births and deaths, 1970 to 2024
+**Steps 10 to 17: code written October 12, 2026, all at once (Tina's choice), tested with TEST VALUES only. No real results yet** (real runs stop until the vital statistics are entered):
+
+| Step | Done | Where |
+|---|---|---|
+| 10 | `load_vital_stats`; `events_between`, `net_migration_by_period`, `average_over_periods`; 6 checks PASS | `src/data_loader.py`, `src/migration.py`, `tests/check_migration.py`, `scripts/net_migration.py` |
+| 11 | `sse`, `rmse`, `mape`, `calibrate_v2` (curve_fit on the Euler solution); `solve_at_times`; shared setup `build_baseline`; 4 checks PASS (incl. recovering known r, K, M from TEST files) | `src/calibration.py`, `src/solvers.py`, `src/baseline.py`, `tests/check_calibration.py`, `tests/make_test_data.py` |
+| 12–15 | RQ1 validation, RQ2 sensitivity (tornado), RQ3 migration vs equilibrium, RQ4 scenarios | `scripts/rq1_validation.py` … `scripts/rq4_forecast.py` |
+| 16 | `run_all` runs every results script, saves CSV + PNG to `results/` | `scripts/run_all.py` |
+| 17 | README for GitHub | `README.md` |
+
+**Data status** (Tina enters all numbers from PSA sources):
+- `data/calabarzon_census.csv`: **1970 to 2020 entered** (10 census years, 2007 boundaries, sources recorded, all pass the loader's sum check; 2000 to 2020 match the official PSA totals). **2024 row still empty.**
+- `data/calabarzon_vital_stats.csv`: registered births and deaths, 1970 to 2024. **Still empty.**
 - Entry rules and pitfalls: `data/README.md`
+
+**Open decisions (need group confirmation). D1 to D5 are already used PROVISIONALLY in the code (Tina's choice, October 12, 2026); if the group decides differently, change the one marked place in the code:**
+
+| # | Decision | Needed by | Options | Claude's recommendation |
+|---|---|---|---|---|
+| D1 | Partial years at census dates when summing births and deaths over an intercensal period | Step 10 | (a) split each end year in proportion to the census date, e.g. May 1 census: 4/12 of that year's events before, 8/12 after; (b) count whole calendar years only | (a), assumes events are spread evenly through the year; state this as an assumption |
+| D2 | Which b and d V1 uses | Step 12 (RQ1) | (a) crude rates over 1970 to 2010 (the calibration period), computed as total births (deaths) / total person-years; (b) the 1970 rates only | (a), so V1 and V2 use information from the same period. Code: `average_over_periods` in `src/migration.py` |
+| D3 | Which M is used while calibrating r and K | Step 11 | (a) average yearly M over 1970 to 2010 from the balancing equation, held fixed; (b) fit M as a third parameter; (c) M = 0 | (a). (b) would no longer take M from data, (c) contradicts V2. Because M is not 0, curve_fit must fit the Euler solution, not `exact_logistic` |
+| D4 | Sensitivity ranges for RQ2 | Step 13 | (a) r and K: calibrated value ± 2 standard errors; M: smallest to largest observed period M (1970 to 2010); (b) the same ± % for all three | (a), every range comes from the data. Note: the answer to RQ2 depends on these ranges, so state them in the paper. Code: top of `scripts/rq2_sensitivity.py` |
+| D5 | Size of the RQ4 fertility and mortality changes | Step 15 | `SCENARIO_CHANGE = 0.10` (10% lower b or 10% higher d, r changes by the same amount) | Placeholder only: replace with a value from a cited source. Code: top of `scripts/rq4_forecast.py` |
 
 **Conventions already set:**
 - Run scripts and tests from the project folder with `python -m`, e.g. `python -m tests.verify`.
 - Outputs made from TEST VALUES are named `results/TEST_*` and are ignored by Git.
 - In the data loader, t = 0 at the **1970 census date** (not January 1, 1970), so a calendar year Y is t = Y − (1970 census decimal year).
 - Verification tolerance is 0.5% max relative error. Revisit it after RQ1 gives the real MAPE.
+- Results scripts take `--test` to use the TEST VALUES files in `tests/data/` (outputs `results/TEST_*`). Without it they use `data/`.
+- All projections (RQ2 to RQ4) start from the **latest census count** (jump-off point), not from the model's value at that date. RQ1 runs from 1970.
+- A calendar year Y as a projection target means January 1 of Y (decimal year Y.0).
 
-**Next:** Step 10 (net migration estimate), after the data is filled in. Open question for Step 10: census dates fall partway through a year but births and deaths are per calendar year, so a rule for the partial years at each end of a period must be chosen and explained.
+**Next:** enter the vital statistics and the 2024 census row, then run `python -m scripts.run_all` for the first real results, and check them carefully. Get group confirmation of D1 to D5. Continue the lessons (Lesson 2 questions still open).
