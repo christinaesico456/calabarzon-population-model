@@ -119,6 +119,12 @@ for missing values. Rates may have decimals; counts are whole numbers.
 - **Aurora** was part of Quezon until 1979. For 1970 to 1978, check whether
   the Quezon figures include Aurora, and treat it the same way as in the
   census file, so births and deaths cover the same area as the population.
+- **Rizal and Metro Manila.** The census file uses 2007 boundaries, so Rizal
+  does **not** include the towns that later became part of Metro Manila
+  (created in 1975), such as Pasig and Marikina. For the early 1970s, check
+  whether the Rizal births and deaths include those towns. If they do, the
+  vital statistics cover a much larger area than the census population, and
+  M for that period will be wrong. Write what you found in `notes`.
 - **Basis of the counts.** Tables can count events by the place of usual
   residence (of the mother or the person who died) or by the place where the
   event happened or was registered. This matters a lot for CALABARZON,
