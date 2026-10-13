@@ -16,11 +16,11 @@ import sys
 
 
 SCRIPTS = [
-    "scripts.net_migration",    # Step 10
     "scripts.rq1_validation",   # Step 12 (RQ1), includes calibration (Step 11)
     "scripts.rq2_sensitivity",  # Step 13 (RQ2)
     "scripts.rq3_migration",    # Step 14 (RQ3)
     "scripts.rq4_forecast",     # Step 15 (RQ4)
+    "scripts.net_migration",    # optional check of the fitted M (needs births and deaths)
 ]
 
 # Pass --test on to every script if run_all was given --test

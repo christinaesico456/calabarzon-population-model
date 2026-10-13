@@ -7,10 +7,10 @@ value while the other two stay at their baseline values. All projections
 start from the latest census count.
 
 Ranges (PROVISIONAL rule D4, based on the data, not picked by hand):
-  r, K : calibrated value +/- 2 standard errors from curve_fit
-         (about a 95% range of values the 1970-2010 census allows)
-  M    : smallest and largest M per year observed in the 1970-2010 periods
-         (balancing equation)
+  r, K, M : fitted value +/- 2 standard errors from curve_fit
+            (about a 95% range of values the 1970-2010 census allows)
+Note: standard errors only count how scattered the census points are around
+the fitted curve, so these ranges can be narrower than the real uncertainty.
 
 Outputs:
   results/rq2_sensitivity.csv   Low / Baseline / High / % change table
@@ -42,22 +42,12 @@ baseline_params = {"r": baseline["r"], "K": baseline["K"], "M": baseline["M"]}
 # ------------------------------------------------------------
 # Low and high value for each parameter (rule D4)
 # ------------------------------------------------------------
-periods = baseline["periods"]
-
-ranges = [
-    {"parameter": "r",
-     "low": baseline["r"] - 2 * baseline["r_se"],
-     "high": baseline["r"] + 2 * baseline["r_se"],
-     "basis": "calibrated r +/- 2 standard errors"},
-    {"parameter": "K",
-     "low": baseline["K"] - 2 * baseline["K_se"],
-     "high": baseline["K"] + 2 * baseline["K_se"],
-     "basis": "calibrated K +/- 2 standard errors"},
-    {"parameter": "M",
-     "low": periods["M_per_year"].min(),
-     "high": periods["M_per_year"].max(),
-     "basis": "smallest and largest observed M per year, 1970-2010"},
-]
+ranges = []
+for name in ["r", "K", "M"]:
+    ranges.append({"parameter": name,
+                   "low": baseline[name] - 2 * baseline[name + "_se"],
+                   "high": baseline[name] + 2 * baseline[name + "_se"],
+                   "basis": f"fitted {name} +/- 2 standard errors"})
 
 # r and K must stay positive, otherwise the model has no meaning
 for item in ranges:

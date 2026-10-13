@@ -7,11 +7,14 @@ These are PROJECTIONS UNDER STATED ASSUMPTIONS, not predictions.
 Every scenario starts from the latest census count and uses V2.
 
 Scenarios (each changes one thing from the baseline):
-  Baseline          calibrated r and K, average M (1970-2010)
-  Lower fertility   births per person fall by SCENARIO_CHANGE:  r - SCENARIO_CHANGE * b
-  Higher mortality  deaths per person rise by SCENARIO_CHANGE:  r - SCENARIO_CHANGE * d
-  High migration    M = largest M per year observed in 1970-2010
-Assumption: a change in b or d changes r by the same amount.
+  Baseline              r, K, M fitted to the 1970-2010 census
+  Lower growth rate     r lower by LOWER_R_CHANGE (lower fertility or higher
+                        mortality; without births and deaths data the model
+                        cannot separate the two, both only lower r)
+  High migration        migration returns to the pre-COVID level: M is raised
+                        by (largest observed M) - (latest observed M), from the
+                        PSA balancing-equation values (e.g. 2015-2020 minus
+                        2020-2024)
 
 Outputs:
   results/rq4_scenarios.csv   scenario x year table
@@ -28,16 +31,17 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from src.baseline import choose_mode, build_baseline, print_baseline, project
+from src.baseline import choose_mode, build_baseline, print_baseline, project, observed_migration
 from src.plot_style import COLORS, DARK, GRAY, style_axes
 
 
 PROJECTION_YEARS = [2030, 2040, 2050]
 
-# PROVISIONAL (rule D5): size of the fertility and mortality changes.
-# 0.10 means "10% fewer births per person" or "10% more deaths per person".
-# The group must replace this with a value from a cited source.
-SCENARIO_CHANGE = 0.10
+# PROVISIONAL (rule D5): size of the lower growth rate change.
+# 0.10 means "r is 10% lower". The group must replace this with a value
+# from a cited source (for example, the assumptions behind PSA's
+# population projections).
+LOWER_R_CHANGE = 0.10
 
 mode = choose_mode()
 baseline = build_baseline(mode)
@@ -46,9 +50,16 @@ print_baseline(baseline)
 r = baseline["r"]
 K = baseline["K"]
 M = baseline["M"]
-b = baseline["b"]
-d = baseline["d"]
-M_max = baseline["periods"]["M_per_year"].max()
+
+# High migration: the extra migration if it goes back from the latest
+# observed level to the highest observed level (PSA, balancing equation)
+observed = observed_migration(mode, baseline)
+M_latest = observed["M_per_year"].iloc[-1]
+M_highest = observed["M_per_year"].max()
+EXTRA_M = M_highest - M_latest
+print(f"Observed M (PSA): latest {M_latest:,.0f}, highest {M_highest:,.0f} per year; "
+      f"high migration scenario adds {EXTRA_M:,.0f} per year")
+print()
 
 
 # ------------------------------------------------------------
@@ -56,17 +67,14 @@ M_max = baseline["periods"]["M_per_year"].max()
 # ------------------------------------------------------------
 scenarios = [
     {"name": "Baseline",
-     "description": "calibrated r and K, average M 1970-2010",
+     "description": "r, K, M fitted to the 1970-2010 census",
      "params": {"r": r, "K": K, "M": M}},
-    {"name": "Lower fertility",
-     "description": f"b lower by {SCENARIO_CHANGE:.0%}: r - {SCENARIO_CHANGE} x b",
-     "params": {"r": r - SCENARIO_CHANGE * b, "K": K, "M": M}},
-    {"name": "Higher mortality",
-     "description": f"d higher by {SCENARIO_CHANGE:.0%}: r - {SCENARIO_CHANGE} x d",
-     "params": {"r": r - SCENARIO_CHANGE * d, "K": K, "M": M}},
+    {"name": "Lower growth rate",
+     "description": f"r lower by {LOWER_R_CHANGE:.0%} (lower fertility or higher mortality)",
+     "params": {"r": r * (1 - LOWER_R_CHANGE), "K": K, "M": M}},
     {"name": "High migration",
-     "description": "M = largest observed M per year, 1970-2010",
-     "params": {"r": r, "K": K, "M": M_max}},
+     "description": f"migration back to pre-COVID level: M + {EXTRA_M:,.0f} per year (PSA)",
+     "params": {"r": r, "K": K, "M": M + EXTRA_M}},
 ]
 
 
@@ -136,7 +144,7 @@ ax.axvline(baseline["latest_decimal_year"], color=GRAY, linewidth=1, linestyle="
 ax.set_xlim(census["decimal_year"].iloc[0] - 2, PROJECTION_YEARS[-1] + 2)
 ax.set_xlabel("Year")
 ax.set_ylabel("Population, N (millions of persons)")
-ax.set_title(mode["label"] + f"RQ4: V2 projections to {PROJECTION_YEARS[-1]} under four scenarios\n"
+ax.set_title(mode["label"] + f"RQ4: V2 projections to {PROJECTION_YEARS[-1]} under {len(scenarios)} scenarios\n"
              f"Purpose: compare scenarios (projections under stated assumptions, "
              f"not predictions)", fontsize=11)
 ax.legend(loc="upper left", frameon=False, fontsize=9)

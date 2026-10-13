@@ -4,8 +4,8 @@ RQ1: How accurately do V1 and V2 reproduce CALABARZON's census population
 from 2015 to 2024?
 
 Both models start from the first census (1970) and run forward:
-  V1: dN/dt = (b - d) N            b, d from vital statistics (rule D2)
-  V2: dN/dt = r N (1 - N/K) + M    r, K calibrated on 1970-2010, M fixed (rule D3)
+  V1: dN/dt = (b - d) N            r = b - d fitted to the 1970-2010 census
+  V2: dN/dt = r N (1 - N/K) + M    r, K, M fitted to the 1970-2010 census
 Census years up to 2010 were used to fit the models ("calibration").
 Census years after 2010 were NOT used, so they test the models ("validation").
 
@@ -37,7 +37,8 @@ baseline = build_baseline(mode)
 print_baseline(baseline)
 
 census = baseline["census"]
-params_v1 = {"b": baseline["b"], "d": baseline["d"]}
+# In V1 only b - d matters, so the fitted r = b - d is passed as b with d = 0
+params_v1 = {"b": baseline["r_v1"], "d": 0}
 params_v2 = {"r": baseline["r"], "K": baseline["K"], "M": baseline["M"]}
 
 
@@ -106,9 +107,9 @@ is_calibration = census["year"].to_numpy() <= CALIBRATION_END_YEAR
 fig, ax = plt.subplots(figsize=(9, 5.5))
 
 ax.plot(years_line, solve_at_times(rate_v1, baseline["N0"], params_v1, t_line, DT) / 1e6,
-        color=COLORS[1], linewidth=2, label="V1 birth-death (b, d from vital statistics)")
+        color=COLORS[1], linewidth=2, label="V1 birth-death (r = b - d fitted)")
 ax.plot(years_line, solve_at_times(rate_v2, baseline["N0"], params_v2, t_line, DT) / 1e6,
-        color=COLORS[0], linewidth=2, label="V2 logistic + migration (r, K calibrated)")
+        color=COLORS[0], linewidth=2, label="V2 logistic + migration (r, K, M fitted)")
 
 ax.plot(census_years[is_calibration], observed[is_calibration] / 1e6, "o",
         color=DARK, label="Census, used for calibration")

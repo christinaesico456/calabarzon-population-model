@@ -2,9 +2,14 @@
 rq3_migration.py
 RQ3: How does net migration affect long-term population and equilibrium?
 
-Method: keep the calibrated r and K, and run V2 with several values of M,
-from 0 (no migration) up to the largest M per year observed in 1970-2010
-(balancing equation). Each run starts from the latest census count.
+Method: keep the calibrated r and K, and run V2 with several values of M.
+Each run starts from the latest census count. The M values are:
+  - the fitted M (the model baseline; a fitting number, see Option A)
+  - 0 (no migration)
+  - the observed M of the latest census period and of the period with the
+    highest M (balancing equation, PSA data): 2020-2024 and 2015-2020
+Option A (PROVISIONAL): r and K come from the census fit; the observed M
+values are real-data migration levels put on top of them ("what if").
 
 For each M, the equilibrium is N* = (K/2) [1 + sqrt(1 + 4M/(rK))]
 (the population where growth stops, dN/dt = 0).
@@ -28,12 +33,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from src.exact import equilibrium_v2
-from src.baseline import choose_mode, build_baseline, print_baseline, project
+from src.baseline import choose_mode, build_baseline, print_baseline, project, observed_migration
 from src.plot_style import COLORS, DARK, GRAY, style_axes
 
 
 END_YEAR = 2200       # long enough to see the population level off
-NUMBER_OF_M = 5       # M values from 0 to the largest observed, evenly spaced
 
 mode = choose_mode()
 baseline = build_baseline(mode)
@@ -41,27 +45,41 @@ print_baseline(baseline)
 
 
 # ------------------------------------------------------------
-# M values: from 0 to the largest M per year observed in 1970-2010
+# M values: fitted M, no migration, and each observed period
 # ------------------------------------------------------------
-M_max = baseline["periods"]["M_per_year"].max()
+observed = observed_migration(mode, baseline)
 
-if M_max <= 0:
-    raise ValueError("No period with in-migration (M > 0) was observed, so the "
-                     "range 0 to high in-migration cannot be set from the data.")
 
-M_values = np.linspace(0, M_max, NUMBER_OF_M)
+def period_name(i):
+    """Census period of row i of the observed table, e.g. '2015-2020'."""
+    return f"{int(observed.loc[i, 'start_year'])}-{int(observed.loc[i, 'end_year'])}"
+
+
+# The latest observed period, and the period with the highest M
+latest = observed.index[-1]
+highest = observed["M_per_year"].idxmax()
+
+M_values = [baseline["M"], 0, observed.loc[latest, "M_per_year"]]
+M_labels = ["fitted M (model baseline)", "no migration",
+            f"observed {period_name(latest)} (PSA)"]
+
+if highest != latest:
+    M_values.append(observed.loc[highest, "M_per_year"])
+    M_labels.append(f"observed {period_name(highest)} (PSA)")
 
 
 # ------------------------------------------------------------
 # Equilibrium and long-term population for each M
 # ------------------------------------------------------------
 rows = []
-for M in M_values:
+for i in range(len(M_values)):
+    M = M_values[i]
     params = {"r": baseline["r"], "K": baseline["K"], "M": M}
     N_star = equilibrium_v2(params)
     N_2050, N_2100 = project(params, baseline, [2050, 2100])
 
     rows.append({
+        "case": M_labels[i],
         "M_per_year": round(M),
         "equilibrium_N_star": round(N_star),
         "N_star_minus_K": round(N_star - baseline["K"]),
@@ -73,14 +91,14 @@ table = pd.DataFrame(rows)
 
 print("RQ3: NET MIGRATION VS EQUILIBRIUM (r and K fixed at calibrated values)")
 print(f"K = {baseline['K']:,.0f} persons. With M = 0 the equilibrium is K; "
-      f"with M > 0 it is above K.")
+      f"with M > 0 it is above K, with M < 0 below K.")
 print()
-print(f"{'M per year':>12}{'N*':>15}{'N* - K':>14}{'N in 2050':>15}{'N in 2100':>15}")
-print("-" * 71)
+print(f"{'Case':<30}{'M per year':>12}{'N*':>15}{'N* - K':>14}{'N in 2050':>15}{'N in 2100':>15}")
+print("-" * 101)
 for i in table.index:
     row = table.loc[i]
-    print(f"{row['M_per_year']:>12,}{row['equilibrium_N_star']:>15,}{row['N_star_minus_K']:>14,}"
-          f"{row['N_2050']:>15,}{row['N_2100']:>15,}")
+    print(f"{row['case']:<30}{row['M_per_year']:>12,}{row['equilibrium_N_star']:>15,}"
+          f"{row['N_star_minus_K']:>14,}{row['N_2050']:>15,}{row['N_2100']:>15,}")
 print()
 
 os.makedirs("results", exist_ok=True)
@@ -103,7 +121,7 @@ for i in range(len(M_values)):
     N_star = equilibrium_v2(params)
 
     ax.plot(years, N / 1e6, color=COLORS[i], linewidth=2,
-            label=f"M = {M_values[i]:,.0f} per year")
+            label=f"M = {M_values[i]:,.0f} per year, {M_labels[i]}")
     ax.hlines(N_star / 1e6, years[0], END_YEAR, color=COLORS[i], linewidth=1, linestyle="--")
     ax.text(END_YEAR + 2, N_star / 1e6, f"N* = {N_star / 1e6:.2f} M",
             va="center", fontsize=8, color=GRAY)

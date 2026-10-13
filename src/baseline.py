@@ -1,11 +1,15 @@
 """
 baseline.py
-Builds the baseline model that the Step 10 to 15 scripts share:
+Builds the baseline model that the results scripts share:
 
-    census + vital statistics
-      -> net migration by period                        (Step 10, migration.py)
-      -> b, d, M over the calibration period             (rules D2, D3)
-      -> r, K calibrated on census years up to 2010      (Step 11, calibration.py)
+    census (1970 to 2010)
+      -> V1: r = b - d fitted to the census          (calibration.py)
+      -> V2: r, K, and M fitted to the census        (calibration.py)
+
+Fallback decision (group, October 13, 2026): births and deaths for 1970 to
+2003 are not available online, so M is fitted from the census instead of
+the balancing equation. The balancing equation is kept only as a check for
+2010 onward (scripts/net_migration.py).
 
 It also chooses which data files to use:
     python -m scripts.rq1_validation          real CALABARZON data (data/)
@@ -19,8 +23,8 @@ import numpy as np
 from src.models import rate_v2
 from src.solvers import solve_at_times
 from src.data_loader import load_census, load_vital_stats
-from src.migration import net_migration_by_period, average_over_periods
-from src.calibration import calibrate_v2
+from src.migration import net_migration_by_period
+from src.calibration import calibrate_v1, calibrate_v2
 
 
 CALIBRATION_END_YEAR = 2010   # calibrate on census years up to 2010 (CLAUDE.md)
@@ -55,7 +59,7 @@ def choose_mode():
 
 def build_baseline(mode):
     """
-    Load the data, estimate b, d, M, and calibrate r, K.
+    Load the census and calibrate V1 and V2 on the census years up to 2010.
 
     Parameters
     ----------
@@ -65,31 +69,19 @@ def build_baseline(mode):
     Returns
     -------
     dict
-        census, periods      : the loaded census and the Step 10 table
+        census               : the loaded census
         N0                   : first census population (persons)
         start_decimal_year   : first census date as a decimal year (t = 0)
-        b, d                 : births and deaths per person per year (V1)
-        r, K, M              : V2 parameters (r and K calibrated, M fixed)
-        r_se, K_se           : standard errors of r and K from curve_fit
+        r_v1, r_v1_se        : V1 growth rate r = b - d (per year) and its standard error
+        r, K, M              : V2 parameters, all fitted
+        r_se, K_se, M_se     : standard errors of r, K, M from curve_fit
         latest_year, latest_decimal_year, latest_N : the latest census,
                                where all projections start (jump-off point)
     """
     census = load_census(mode["census"])
-    vital = load_vital_stats(mode["vital"])
 
     # Calibration uses census years up to 2010 only; 2015 onward is kept for validation
     calibration_census = census[census["year"] <= CALIBRATION_END_YEAR]
-
-    periods = net_migration_by_period(calibration_census, vital)
-
-    # Every calibration period needs M, otherwise the average M leaves out years
-    if len(periods) < len(calibration_census) - 1:
-        raise ValueError(
-            f"Births and deaths are needed for every year from the first census "
-            f"to the {CALIBRATION_END_YEAR} census. Enter them in {mode['vital']} first."
-        )
-
-    rates = average_over_periods(periods)
 
     N0 = census.loc[0, "total"]
     t_data = calibration_census["t"].to_numpy()
@@ -98,26 +90,29 @@ def build_baseline(mode):
     # Starting guesses for curve_fit (only where the search starts, not the answer):
     # r_guess = average growth per year over the calibration period
     # K_guess = twice the largest calibration census
+    # M_guess = 0 (no migration), so the data alone decides the sign of M
     r_guess = np.log(N_data[-1] / N_data[0]) / t_data[-1]
     K_guess = 2 * N_data.max()
+    M_guess = 0
 
-    fit = calibrate_v2(t_data, N_data, N0, rates["M"], DT, r_guess, K_guess)
+    fit_v1 = calibrate_v1(t_data, N_data, N0, DT, r_guess)
+    fit_v2 = calibrate_v2(t_data, N_data, N0, DT, r_guess, K_guess, M_guess)
 
     # The latest census in the file: all projections start here
     last = len(census) - 1
 
     return {
         "census": census,
-        "periods": periods,
         "N0": N0,
         "start_decimal_year": census.loc[0, "decimal_year"],
-        "b": rates["b"],
-        "d": rates["d"],
-        "r": fit["r"],
-        "K": fit["K"],
-        "M": fit["M"],
-        "r_se": fit["r_se"],
-        "K_se": fit["K_se"],
+        "r_v1": fit_v1["r"],
+        "r_v1_se": fit_v1["r_se"],
+        "r": fit_v2["r"],
+        "K": fit_v2["K"],
+        "M": fit_v2["M"],
+        "r_se": fit_v2["r_se"],
+        "K_se": fit_v2["K_se"],
+        "M_se": fit_v2["M_se"],
         "latest_year": census.loc[last, "year"],
         "latest_decimal_year": census.loc[last, "decimal_year"],
         "latest_N": census.loc[last, "total"],
@@ -125,17 +120,50 @@ def build_baseline(mode):
 
 
 def print_baseline(baseline):
-    """Print the baseline parameters with their units."""
-    print("Baseline parameters")
+    """Print the fitted parameters with their units and standard errors."""
+    print(f"Calibrated on census years up to {CALIBRATION_END_YEAR}")
     print(f"  N0 = {baseline['N0']:,.0f} persons (first census)")
-    print(f"  b  = {baseline['b']:.5f} per person per year")
-    print(f"  d  = {baseline['d']:.5f} per person per year")
-    print(f"  M  = {baseline['M']:,.0f} persons per year (average, held fixed)")
-    print(f"  r  = {baseline['r']:.5f} per year (calibrated, standard error {baseline['r_se']:.5f})")
-    print(f"  K  = {baseline['K']:,.0f} persons (calibrated, standard error {baseline['K_se']:,.0f})")
+    print(f"  V1: r = b - d = {baseline['r_v1']:.5f} per year "
+          f"(standard error {baseline['r_v1_se']:.5f})")
+    print(f"  V2: r = {baseline['r']:.5f} per year (standard error {baseline['r_se']:.5f})")
+    print(f"      K = {baseline['K']:,.0f} persons (standard error {baseline['K_se']:,.0f})")
+    print(f"      M = {baseline['M']:,.0f} persons per year (standard error {baseline['M_se']:,.0f})")
     print(f"  Projections start from the {baseline['latest_year']} census: "
           f"{baseline['latest_N']:,.0f} persons")
     print()
+
+
+def observed_migration(mode, baseline):
+    """
+    Net migration per year observed with the balancing equation, for every
+    census period whose births and deaths were entered (2015 onward).
+
+    M = (Pop_end - Pop_start) - (Births - Deaths), divided by the period length.
+
+    Option A (PROVISIONAL, October 13, 2026): these observed values are NOT
+    used to fit the model. They are used as real-data migration levels in
+    RQ3 and RQ4, and to check the fitted M (scripts/net_migration.py).
+
+    Parameters
+    ----------
+    mode : dict
+        From choose_mode().
+    baseline : dict
+        From build_baseline().
+
+    Returns
+    -------
+    pandas DataFrame
+        One row per period (see net_migration_by_period in migration.py).
+    """
+    vital = load_vital_stats(mode["vital"])
+    periods = net_migration_by_period(baseline["census"], vital)
+
+    if len(periods) == 0:
+        raise ValueError("No census period has births and deaths for every year. "
+                         "Enter them in " + mode["vital"] + " first.")
+
+    return periods
 
 
 def project(params, baseline, decimal_years):
