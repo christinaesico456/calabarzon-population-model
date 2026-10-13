@@ -140,7 +140,7 @@ def observed_migration(mode, baseline):
 
     M = (Pop_end - Pop_start) - (Births - Deaths), divided by the period length.
 
-    Option A (PROVISIONAL, October 13, 2026): these observed values are NOT
+    Option A (chosen October 13, 2026): these observed values are NOT
     used to fit the model. They are used as real-data migration levels in
     RQ3 and RQ4, and to check the fitted M (scripts/net_migration.py).
 

@@ -223,13 +223,13 @@ All checks PASS (October 13, 2026): verify 14, data loader 7, migration 5, calib
 - **Fallback (group agreed):** because 1970 to 2014 births and deaths are not online, M is **fitted from the census** together with r and K (`calibrate_v2`), and V1's r = b − d is fitted from the census (`calibrate_v1`). This replaces the parameter-source table in Section 4 for M and for V1's b, d.
 - **Real fit (calibration 1970 to 2010):** V1 r = 0.03342; V2 r = 0.08440, K = 24,083,970, **M = −159,076** per year. Validation MAPE: V1 11.97%, V2 0.93%.
 - **Observed migration (balancing equation, PSA births and deaths):** 2015–2020: **+212,394** per year (57% of growth); 2020–2024: **+71,383** per year (40%). So the fitted negative M is a fitting number, not real migration. Fixing M at these values and fitting only r and K breaks the fit (r → 0 or K → infinity), because migration changes over time and the model assumes one constant M.
-- **Option A (PROVISIONAL, Tina chose October 13, 2026; group/adviser confirmation pending):** keep the census fit (r, K, M) for RQ1 to RQ4; use the observed PSA migration as evidence and as real-data migration levels: RQ3 runs M = fitted, 0, 71,383, 212,394; RQ4 "high migration" adds 212,394 − 71,383 = 141,011 per year (back to pre-COVID level). Option B (not done) would change the method, e.g. fit r and K from births and deaths 2015 to 2024 and use real M; it changes the October 5 decision.
+- **Option A (CHOSEN by Tina, October 13, 2026; ask the adviser to confirm it is acceptable):** keep the census fit (r, K, M) for RQ1 to RQ4; use the observed PSA migration as evidence and as real-data migration levels: RQ3 runs M = fitted, 0, 71,383, 212,394; RQ4 "high migration" adds 212,394 − 71,383 = 141,011 per year (back to pre-COVID level). Option B (not done) would change the method, e.g. fit r and K from births and deaths 2015 to 2024 and use real M; it changes the October 5 decision.
 
 **Open decisions:**
 
 | # | Decision | Status |
 |---|---|---|
-| A/B | Option A (current) or a method change | Waiting for group and adviser |
+| A/B | Option A or a method change | **Option A chosen** (Tina, October 13, 2026). Adviser confirmation recommended; if the adviser requires every parameter to have a real meaning, Option B would be needed |
 | D1 | Partial years at census dates: split by date | Still used by the balancing equation (`events_between`); provisional |
 | D2, D3 | b, d for V1 and fixed M from the balancing equation | **Replaced by the fallback** (V1 r and V2 M are fitted) |
 | D4 | RQ2 ranges: r, K, M each fitted value ± 2 standard errors | Provisional. Note: standard errors only measure scatter around the fit, so ranges may be too narrow; state this in the paper. Code: top of `scripts/rq2_sensitivity.py` |
@@ -245,4 +245,4 @@ All checks PASS (October 13, 2026): verify 14, data loader 7, migration 5, calib
 - A calendar year Y as a projection target means January 1 of Y (decimal year Y.0).
 - Why 1970 is the start (suggested reason, not yet confirmed by the group): from 1970 the census is about every 5 years, giving enough points to calibrate and validate, and the period covers the industrial growth and in-migration the model represents.
 
-**Next:** get group/adviser answer on Option A vs B. Find a cited source for D5. Continue the lessons (stopped after Lesson 2; Lesson 2 questions still open). Groupmates: concept map, paper sections using the results in `results/` and README.
+**Next:** ask the adviser to confirm Option A. Find a cited source for D5. Continue the lessons (stopped after Lesson 2; Lesson 2 questions still open). Groupmates: concept map, paper sections using the results in `results/` and README.

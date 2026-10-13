@@ -9,8 +9,8 @@ census data (validation), and uses them for sensitivity analysis and scenario
 projections.
 
 > **Status:** code complete and run on real data (census 1970 to 2024, PSA
-> births and deaths 2015 to 2024). The method for net migration (Option A,
-> below) is **provisional** until the group and adviser confirm it.
+> births and deaths 2015 to 2024). The method for net migration is Option A
+> (below), chosen October 13, 2026; adviser confirmation is recommended.
 
 ## The models
 
@@ -26,7 +26,7 @@ projections.
 
 Both models are solved with Euler's method (dt = 0.1 year). RK4 is used as a cross-check.
 
-### How net migration is handled (Option A, provisional)
+### How net migration is handled (Option A)
 
 Registered births and deaths before 2015 are not available online, so M cannot
 be taken from the balancing equation for the 1970 to 2010 calibration period.

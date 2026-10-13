@@ -8,7 +8,7 @@ Each run starts from the latest census count. The M values are:
   - 0 (no migration)
   - the observed M of the latest census period and of the period with the
     highest M (balancing equation, PSA data): 2020-2024 and 2015-2020
-Option A (PROVISIONAL): r and K come from the census fit; the observed M
+Option A (chosen October 13, 2026): r and K come from the census fit; the observed M
 values are real-data migration levels put on top of them ("what if").
 
 For each M, the equilibrium is N* = (K/2) [1 + sqrt(1 + 4M/(rK))]
