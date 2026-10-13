@@ -214,9 +214,9 @@ Every graph must state x-axis, y-axis, units, and purpose. No decorative graphs.
 All checks PASS (October 13, 2026): verify 14, data loader 7, migration 5, calibration 6.
 
 **Data status: COMPLETE** (all from PSA, sources in the `source` column):
-- `data/calabarzon_census.csv`: all 11 census years, 1970 to 2024. 2024 from the 2024 POPCEN barangay tables (Region IV-A Excel; areas add up exactly to 16,933,234; Quezon excludes Lucena). TODO: save that Excel file in `data/sources/` and record its file name and link.
+- `data/calabarzon_census.csv`: all 11 census years, 1970 to 2024. 2024 from the 2024 POPCEN barangay tables (Region IV-A Excel; areas add up exactly to 16,933,234; Quezon excludes Lucena). File: `data/sources/census_2024_POPCEN_region4A_PSA.xlsx` (download link not recorded).
 - `data/calabarzon_vital_stats.csv`: births and deaths **2015 to 2024**, CALABARZON totals by usual residence (PSA special releases and OpenSTAT; OpenSTAT matches the PDFs exactly for 2016 to 2023). **1970 to 2014 not available online** (checked PSA Data Archive, OpenSTAT, archive.org on October 13, 2026); left empty on purpose.
-- The downloaded PSA PDFs are not yet saved in `data/sources/`.
+- PSA source files in `data/sources/` (copied October 13, 2026): deaths 2016 to 2021, births 2017 to 2019. Not saved locally (only viewed online; URLs are in the `source` column): births 2020 to 2024, deaths 2022 to 2024, and the two OpenSTAT tables (births 2013 to 2023, deaths Table 9.5).
 - Entry rules and pitfalls: `data/README.md`
 
 **Method changes (October 13, 2026):**
@@ -245,4 +245,4 @@ All checks PASS (October 13, 2026): verify 14, data loader 7, migration 5, calib
 - A calendar year Y as a projection target means January 1 of Y (decimal year Y.0).
 - Why 1970 is the start (suggested reason, not yet confirmed by the group): from 1970 the census is about every 5 years, giving enough points to calibrate and validate, and the period covers the industrial growth and in-migration the model represents.
 
-**Next:** get group/adviser answer on Option A vs B. Save the PSA source files in `data/sources/`. Find a cited source for D5. Continue the lessons (stopped after Lesson 2; Lesson 2 questions still open). Groupmates: concept map, paper sections using the results in `results/` and README.
+**Next:** get group/adviser answer on Option A vs B. Find a cited source for D5. Continue the lessons (stopped after Lesson 2; Lesson 2 questions still open). Groupmates: concept map, paper sections using the results in `results/` and README.
