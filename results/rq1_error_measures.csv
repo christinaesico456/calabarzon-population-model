@@ -1,0 +1,5 @@
+years,model,RMSE_persons,MAPE_pct
+calibration,V1,123226,1.41
+calibration,V2,67323,0.94
+validation,V1,2269882,11.97
+validation,V2,177623,0.93
