@@ -81,7 +81,7 @@ src/
   solvers.py       make_time_grid, euler_solve, rk4_solve, solve_at_times
   exact.py         exact_v1, exact_logistic, equilibrium_v2 (for verification)
   data_loader.py   load_census, load_vital_stats (with data checks)
-  migration.py     events_between, net_migration_by_period, average_over_periods
+  migration.py     events_between, net_migration_by_period
   calibration.py   sse, rmse, mape, calibrate_v1, calibrate_v2
   baseline.py      shared setup: fit V1 and V2, observed migration, projections
   plot_style.py    shared graph colors and styling
@@ -90,7 +90,7 @@ scripts/
   net_migration.py (check of the fitted M), run_all.py
   test_run.py, plot_verification.py (early TEST VALUES demos)
 tests/
-  verify.py               12 verification tests of the solvers
+  verify.py               14 verification tests of the solvers
   check_data_loader.py    census loader checks
   check_migration.py      vital statistics and net migration checks
   check_calibration.py    error measure and calibration checks

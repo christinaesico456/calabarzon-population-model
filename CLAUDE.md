@@ -82,6 +82,7 @@ Census reference dates differ (e.g., May 1 2010 and 2020, Aug 1 2015, Jul 1 2024
 
 ### Calibration and error measures
 - Calibrate V2 (r, K) on 1970–2010 census by minimizing SSE = Σ (N_model − N_census)², using scipy.optimize.curve_fit.
+  - **Updated October 13, 2026 (fallback):** V2 now fits **r, K, and M** together, and V1 fits r = b − d, both from the 1970–2010 census. See Section 9.
 - Validate on 2015, 2020, 2024 only: RMSE (persons) and MAPE (%).
 - Net migration estimate (demographic balancing equation): M = (Pop_end − Pop_start) − (Births − Deaths) over each intercensal period.
 
@@ -95,6 +96,8 @@ Census reference dates differ (e.g., May 1 2010 and 2020, Aug 1 2015, Jul 1 2024
 | K | not used | calibrated | Yes (RQ2) |
 | M | not used | balancing equation | Yes (RQ2, RQ3, RQ4) |
 
+**Updated October 13, 2026 (fallback and Option A, see Section 9):** this table was the original plan. Births and deaths before 2015 are not online, so now: V1 r = b − d is **fitted** to the census (b and d are not used separately); V2 M is **fitted** to the census together with r and K; the balancing equation (PSA births and deaths, 2015–2024) is used only as a **check** of the fitted M and as real migration levels in RQ3 and RQ4.
+
 ## 5. Research questions (each must map to code that produces a table and a graph)
 
 | RQ | Question | Simulation | Output |
@@ -105,6 +108,8 @@ Census reference dates differ (e.g., May 1 2010 and 2020, Aug 1 2015, Jul 1 2024
 | RQ4 (forecasting) | What population does the model project for 2030, 2040, 2050 under scenarios? | Baseline, lower fertility, higher mortality (lower r), high migration | Scenario × year table; all scenarios on one plot |
 
 Forecasts are **projections under stated assumptions**, not predictions. Always label them that way.
+
+**Updated October 13, 2026 (see Section 9):** RQ3 uses M = fitted, 0, and the observed PSA values (71,383 and 212,394 per year) instead of "0 to high". RQ4 has 3 scenarios: baseline, **lower growth rate** (lower fertility and higher mortality merged, because both only lower r), and high migration (back to the pre-COVID level).
 
 ## 6. Data plan (I collect this myself)
 
@@ -193,20 +198,20 @@ Every graph must state x-axis, y-axis, units, and purpose. No decorative graphs.
 | 4–5 | `make_time_grid`, `euler_solve`, `rk4_solve` (N ≥ 0 boundary in both) | `src/solvers.py` |
 | 6 | `exact_v1`, `exact_logistic`, `equilibrium_v2` | `src/exact.py` |
 | 7 | First test run + V2 migration graph | `scripts/test_run.py` |
-| 8 | 12 verification tests, all PASS; Euler error graph | `tests/verify.py`, `scripts/plot_verification.py` |
+| 8 | 14 verification tests (b < d and doubling time added October 13), all PASS; Euler error graph | `tests/verify.py`, `scripts/plot_verification.py` |
 | 9 | `load_census` + 7 loader checks, all PASS | `src/data_loader.py`, `tests/check_data_loader.py`, `tests/data/` |
 
 **Steps 10 to 17 are done and run on real data** (code first written October 12, 2026, all at once, Tina's choice; changed October 13 for the fallback and Option A):
 
 | Step | Done | Where |
 |---|---|---|
-| 10 | `load_vital_stats`; `events_between`, `net_migration_by_period`; 6 checks PASS. Balancing equation is now a CHECK of the fitted M and the source of observed M for RQ3/RQ4 | `src/data_loader.py`, `src/migration.py`, `tests/check_migration.py`, `scripts/net_migration.py` |
+| 10 | `load_vital_stats`; `events_between`, `net_migration_by_period`; 5 checks PASS (average_over_periods removed, unused after the fallback). Balancing equation is now a CHECK of the fitted M and the source of observed M for RQ3/RQ4 | `src/data_loader.py`, `src/migration.py`, `tests/check_migration.py`, `scripts/net_migration.py` |
 | 11 | `sse`, `rmse`, `mape`, `calibrate_v1` (r = b − d), `calibrate_v2` (r, K, M), curve_fit on the Euler solution; `solve_at_times`; shared setup `build_baseline`, `observed_migration`; 6 checks PASS | `src/calibration.py`, `src/solvers.py`, `src/baseline.py`, `tests/check_calibration.py`, `tests/make_test_data.py` |
 | 12–15 | RQ1 validation, RQ2 sensitivity (tornado), RQ3 migration vs equilibrium, RQ4 scenarios | `scripts/rq1_validation.py` … `scripts/rq4_forecast.py` |
 | 16 | `run_all` runs every results script, saves CSV + PNG to `results/` (real outputs are committed; `results/TEST_*` ignored) | `scripts/run_all.py` |
 | 17 | README for GitHub, with main results | `README.md` |
 
-All checks PASS (October 13, 2026): verify 12, data loader 7, migration 6, calibration 6.
+All checks PASS (October 13, 2026): verify 14, data loader 7, migration 5, calibration 6.
 
 **Data status: COMPLETE** (all from PSA, sources in the `source` column):
 - `data/calabarzon_census.csv`: all 11 census years, 1970 to 2024. 2024 from the 2024 POPCEN barangay tables (Region IV-A Excel; areas add up exactly to 16,933,234; Quezon excludes Lucena). TODO: save that Excel file in `data/sources/` and record its file name and link.

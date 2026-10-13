@@ -143,6 +143,44 @@ def test_birth_equals_death_constant():
             pass_or_fail(largest_change < 1e-6)]
 
 
+def test_births_less_than_deaths_declines():
+    """If b < d, then dN/dt < 0, so N should fall every step and match the exact formula."""
+    params = {"b": 0.006, "d": 0.025}   # TEST VALUES (more deaths than births)
+    N0 = 1000000                        # TEST VALUE
+
+    t, N_euler = euler_solve(rate_v1, N0, params, T_END, DT)
+    N_exact = exact_v1(t, N0, params)
+
+    always_decreasing = np.all(np.diff(N_euler) < 0)   # every step goes down
+    error = max_relative_error(N_euler, N_exact)
+
+    return ["b < d declines (V1)",
+            "falls every step, error < 0.5%",
+            f"{N_euler[-1] / 1e6:.3f}M, error {error * 100:.4f}%",
+            pass_or_fail(always_decreasing and error < TOLERANCE)]
+
+
+def test_doubling_time():
+    """N should reach 2 x N0 at the doubling time ln(2) / (b - d)."""
+    params = {"b": 0.025, "d": 0.006}   # TEST VALUES
+    N0 = 1000000                        # TEST VALUE
+
+    doubling_formula = np.log(2) / (params["b"] - params["d"])   # years
+
+    t, N = euler_solve(rate_v1, N0, params, T_END, DT)
+
+    # Time when the simulated N reaches 2 x N0, read from the grid by
+    # straight-line interpolation (N increases, so np.interp can be used)
+    doubling_simulated = np.interp(2 * N0, N, t)
+
+    difference = abs(doubling_simulated - doubling_formula) / doubling_formula
+
+    return ["Doubling time = ln(2)/(b - d)",
+            "within 0.5% of the formula",
+            f"{doubling_simulated:.2f} vs {doubling_formula:.2f} yr",
+            pass_or_fail(difference < TOLERANCE)]
+
+
 def test_v2_reduces_to_v1():
     """With K = infinity and M = 0, V2 becomes dN/dt = rN, which is V1 with r = b - d."""
     params_v1 = {"b": 0.025, "d": 0.006}   # TEST VALUES
@@ -242,6 +280,8 @@ rows = [
     test_rk4_vs_exact_v1(),
     test_euler_vs_rk4_with_migration(),
     test_birth_equals_death_constant(),
+    test_births_less_than_deaths_declines(),
+    test_doubling_time(),
     test_v2_reduces_to_v1(),
     test_start_at_K_stays_at_K(),
     test_above_K_declines(),

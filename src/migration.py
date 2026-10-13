@@ -86,8 +86,7 @@ def net_migration_by_period(census, vital):
     -------
     pandas DataFrame
         One row per period with: start_year, end_year, length_years,
-        pop_change, births, deaths, natural_increase, M_total, M_per_year,
-        person_years.
+        pop_change, births, deaths, natural_increase, M_total, M_per_year.
     """
     rows = []
 
@@ -113,10 +112,6 @@ def net_migration_by_period(census, vital):
         # Balancing equation: whatever growth births and deaths do not explain is migration
         M_total = (pop_end - pop_start) - natural_increase
 
-        # Person-years lived in the period: average population times length
-        # (straight line between the two census counts). Used for b and d.
-        person_years = (pop_start + pop_end) / 2 * length
-
         rows.append({
             "start_year": start_year,
             "end_year": end_year,
@@ -127,37 +122,7 @@ def net_migration_by_period(census, vital):
             "natural_increase": natural_increase,
             "M_total": M_total,
             "M_per_year": M_total / length,
-            "person_years": person_years,
         })
 
     return pd.DataFrame(rows)
 
-
-def average_over_periods(periods):
-    """
-    b, d, and M averaged over a set of periods (PROVISIONAL rules D2 and D3).
-
-    b = total births / total person-years   (births per person per year)
-    d = total deaths / total person-years   (deaths per person per year)
-    M = total net migrants / total years    (persons per year)
-
-    Totals are used instead of averaging each period's value, so a long
-    period (e.g. 1980-1990) counts more than a short one (e.g. 2007-2010).
-
-    Parameters
-    ----------
-    periods : pandas DataFrame
-        From net_migration_by_period.
-
-    Returns
-    -------
-    dict
-        {"b": ..., "d": ..., "M": ...}
-    """
-    person_years = periods["person_years"].sum()
-
-    b = periods["births"].sum() / person_years
-    d = periods["deaths"].sum() / person_years
-    M = periods["M_total"].sum() / periods["length_years"].sum()
-
-    return {"b": b, "d": d, "M": M}

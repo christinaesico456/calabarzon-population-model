@@ -9,7 +9,7 @@ Run from the project folder:  python -m tests.check_migration
 import pandas as pd
 
 from src.data_loader import load_vital_stats
-from src.migration import events_between, net_migration_by_period, average_over_periods
+from src.migration import events_between, net_migration_by_period
 
 
 def pass_or_fail(condition):
@@ -55,14 +55,7 @@ rows.append(["Balancing equation (by hand)",
              f"M per year = {M_per_year:,.0f}",
              pass_or_fail(abs(M_per_year - 600) < 1e-9)])
 
-# Check 4: b = births / person-years. Person-years = (1,000 + 4,000) / 2 x 2 = 5,000
-rates = average_over_periods(periods)
-rows.append(["b = births / person-years",
-             "2,400 / 5,000 = 0.48",
-             f"{rates['b']:.4f}",
-             pass_or_fail(abs(rates["b"] - 0.48) < 1e-12)])
-
-# Check 5: a period with a year not entered is skipped (2003 to 2005 needs 2004)
+# Check 4: a period with a year not entered is skipped (2003 to 2005 needs 2004)
 census_gap = pd.DataFrame({"year": [2003, 2005],
                            "decimal_year": [2003.0, 2005.0],
                            "total": [1000, 1100]})
@@ -72,7 +65,7 @@ rows.append(["Period with missing year skipped",
              f"{len(periods_gap)} periods",
              pass_or_fail(len(periods_gap) == 0)])
 
-# Check 6: a year with births but no deaths stops with an error
+# Check 5: a year with births but no deaths stops with an error
 try:
     load_vital_stats("tests/data/vital_TEST_partial_row.csv")
     result = "no error"
