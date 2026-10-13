@@ -184,7 +184,7 @@ Every graph must state x-axis, y-axis, units, and purpose. No decorative graphs.
 - Phases 1 to 3 (research, model selection, mathematical model) are done and documented in Google Docs.
 - Deadline not yet confirmed. Tentative 4-week plan started October 5, 2026: Week 1 code + verification, Week 2 data + calibration + validation, Week 3 sensitivity + scenarios + results, Week 4 paper review + code walkthrough for groupmates.
 
-**Build order steps 1 to 9 are done** (all tested with TEST VALUES only, no real data used yet):
+**Build order steps 1 to 9 are done** (tested with TEST VALUES):
 
 | Step | Done | Where |
 |---|---|---|
@@ -196,38 +196,48 @@ Every graph must state x-axis, y-axis, units, and purpose. No decorative graphs.
 | 8 | 12 verification tests, all PASS; Euler error graph | `tests/verify.py`, `scripts/plot_verification.py` |
 | 9 | `load_census` + 7 loader checks, all PASS | `src/data_loader.py`, `tests/check_data_loader.py`, `tests/data/` |
 
-**Steps 10 to 17: code written October 12, 2026, all at once (Tina's choice), tested with TEST VALUES only. No real results yet** (real runs stop until the vital statistics are entered):
+**Steps 10 to 17 are done and run on real data** (code first written October 12, 2026, all at once, Tina's choice; changed October 13 for the fallback and Option A):
 
 | Step | Done | Where |
 |---|---|---|
-| 10 | `load_vital_stats`; `events_between`, `net_migration_by_period`, `average_over_periods`; 6 checks PASS | `src/data_loader.py`, `src/migration.py`, `tests/check_migration.py`, `scripts/net_migration.py` |
-| 11 | `sse`, `rmse`, `mape`, `calibrate_v2` (curve_fit on the Euler solution); `solve_at_times`; shared setup `build_baseline`; 4 checks PASS (incl. recovering known r, K, M from TEST files) | `src/calibration.py`, `src/solvers.py`, `src/baseline.py`, `tests/check_calibration.py`, `tests/make_test_data.py` |
+| 10 | `load_vital_stats`; `events_between`, `net_migration_by_period`; 6 checks PASS. Balancing equation is now a CHECK of the fitted M and the source of observed M for RQ3/RQ4 | `src/data_loader.py`, `src/migration.py`, `tests/check_migration.py`, `scripts/net_migration.py` |
+| 11 | `sse`, `rmse`, `mape`, `calibrate_v1` (r = b − d), `calibrate_v2` (r, K, M), curve_fit on the Euler solution; `solve_at_times`; shared setup `build_baseline`, `observed_migration`; 6 checks PASS | `src/calibration.py`, `src/solvers.py`, `src/baseline.py`, `tests/check_calibration.py`, `tests/make_test_data.py` |
 | 12–15 | RQ1 validation, RQ2 sensitivity (tornado), RQ3 migration vs equilibrium, RQ4 scenarios | `scripts/rq1_validation.py` … `scripts/rq4_forecast.py` |
-| 16 | `run_all` runs every results script, saves CSV + PNG to `results/` | `scripts/run_all.py` |
-| 17 | README for GitHub | `README.md` |
+| 16 | `run_all` runs every results script, saves CSV + PNG to `results/` (real outputs are committed; `results/TEST_*` ignored) | `scripts/run_all.py` |
+| 17 | README for GitHub, with main results | `README.md` |
 
-**Data status** (Tina enters all numbers from PSA sources):
-- `data/calabarzon_census.csv`: **1970 to 2020 entered** (10 census years, 2007 boundaries, sources recorded, all pass the loader's sum check; 2000 to 2020 match the official PSA totals). **2024 row still empty.**
-- `data/calabarzon_vital_stats.csv`: registered births and deaths, 1970 to 2024. **Still empty.**
+All checks PASS (October 13, 2026): verify 12, data loader 7, migration 6, calibration 6.
+
+**Data status: COMPLETE** (all from PSA, sources in the `source` column):
+- `data/calabarzon_census.csv`: all 11 census years, 1970 to 2024. 2024 from the 2024 POPCEN barangay tables (Region IV-A Excel; areas add up exactly to 16,933,234; Quezon excludes Lucena). TODO: save that Excel file in `data/sources/` and record its file name and link.
+- `data/calabarzon_vital_stats.csv`: births and deaths **2015 to 2024**, CALABARZON totals by usual residence (PSA special releases and OpenSTAT; OpenSTAT matches the PDFs exactly for 2016 to 2023). **1970 to 2014 not available online** (checked PSA Data Archive, OpenSTAT, archive.org on October 13, 2026); left empty on purpose.
+- The downloaded PSA PDFs are not yet saved in `data/sources/`.
 - Entry rules and pitfalls: `data/README.md`
 
-**Open decisions (need group confirmation). D1 to D5 are already used PROVISIONALLY in the code (Tina's choice, October 12, 2026); if the group decides differently, change the one marked place in the code:**
+**Method changes (October 13, 2026):**
+- **Fallback (group agreed):** because 1970 to 2014 births and deaths are not online, M is **fitted from the census** together with r and K (`calibrate_v2`), and V1's r = b − d is fitted from the census (`calibrate_v1`). This replaces the parameter-source table in Section 4 for M and for V1's b, d.
+- **Real fit (calibration 1970 to 2010):** V1 r = 0.03342; V2 r = 0.08440, K = 24,083,970, **M = −159,076** per year. Validation MAPE: V1 11.97%, V2 0.93%.
+- **Observed migration (balancing equation, PSA births and deaths):** 2015–2020: **+212,394** per year (57% of growth); 2020–2024: **+71,383** per year (40%). So the fitted negative M is a fitting number, not real migration. Fixing M at these values and fitting only r and K breaks the fit (r → 0 or K → infinity), because migration changes over time and the model assumes one constant M.
+- **Option A (PROVISIONAL, Tina chose October 13, 2026; group/adviser confirmation pending):** keep the census fit (r, K, M) for RQ1 to RQ4; use the observed PSA migration as evidence and as real-data migration levels: RQ3 runs M = fitted, 0, 71,383, 212,394; RQ4 "high migration" adds 212,394 − 71,383 = 141,011 per year (back to pre-COVID level). Option B (not done) would change the method, e.g. fit r and K from births and deaths 2015 to 2024 and use real M; it changes the October 5 decision.
 
-| # | Decision | Needed by | Options | Claude's recommendation |
-|---|---|---|---|---|
-| D1 | Partial years at census dates when summing births and deaths over an intercensal period | Step 10 | (a) split each end year in proportion to the census date, e.g. May 1 census: 4/12 of that year's events before, 8/12 after; (b) count whole calendar years only | (a), assumes events are spread evenly through the year; state this as an assumption |
-| D2 | Which b and d V1 uses | Step 12 (RQ1) | (a) crude rates over 1970 to 2010 (the calibration period), computed as total births (deaths) / total person-years; (b) the 1970 rates only | (a), so V1 and V2 use information from the same period. Code: `average_over_periods` in `src/migration.py` |
-| D3 | Which M is used while calibrating r and K | Step 11 | (a) average yearly M over 1970 to 2010 from the balancing equation, held fixed; (b) fit M as a third parameter; (c) M = 0 | (a). (b) would no longer take M from data, (c) contradicts V2. Because M is not 0, curve_fit must fit the Euler solution, not `exact_logistic` |
-| D4 | Sensitivity ranges for RQ2 | Step 13 | (a) r and K: calibrated value ± 2 standard errors; M: smallest to largest observed period M (1970 to 2010); (b) the same ± % for all three | (a), every range comes from the data. Note: the answer to RQ2 depends on these ranges, so state them in the paper. Code: top of `scripts/rq2_sensitivity.py` |
-| D5 | Size of the RQ4 fertility and mortality changes | Step 15 | `SCENARIO_CHANGE = 0.10` (10% lower b or 10% higher d, r changes by the same amount) | Placeholder only: replace with a value from a cited source. Code: top of `scripts/rq4_forecast.py` |
+**Open decisions:**
+
+| # | Decision | Status |
+|---|---|---|
+| A/B | Option A (current) or a method change | Waiting for group and adviser |
+| D1 | Partial years at census dates: split by date | Still used by the balancing equation (`events_between`); provisional |
+| D2, D3 | b, d for V1 and fixed M from the balancing equation | **Replaced by the fallback** (V1 r and V2 M are fitted) |
+| D4 | RQ2 ranges: r, K, M each fitted value ± 2 standard errors | Provisional. Note: standard errors only measure scatter around the fit, so ranges may be too narrow; state this in the paper. Code: top of `scripts/rq2_sensitivity.py` |
+| D5 | RQ4 "lower growth rate" = r 10% lower (`LOWER_R_CHANGE = 0.10`) | Placeholder: needs a cited source (e.g. PSA "Projected Population Based on 2020 CPH" assumptions). Without births and deaths for the calibration period, lower fertility and higher mortality are merged into one scenario (both only lower r) |
 
 **Conventions already set:**
 - Run scripts and tests from the project folder with `python -m`, e.g. `python -m tests.verify`.
 - Outputs made from TEST VALUES are named `results/TEST_*` and are ignored by Git.
 - In the data loader, t = 0 at the **1970 census date** (not January 1, 1970), so a calendar year Y is t = Y − (1970 census decimal year).
-- Verification tolerance is 0.5% max relative error. Revisit it after RQ1 gives the real MAPE.
+- Verification tolerance is 0.5% max relative error.
 - Results scripts take `--test` to use the TEST VALUES files in `tests/data/` (outputs `results/TEST_*`). Without it they use `data/`.
-- All projections (RQ2 to RQ4) start from the **latest census count** (jump-off point), not from the model's value at that date. RQ1 runs from 1970.
+- All projections (RQ2 to RQ4) start from the **latest census count** (2024, jump-off point), not from the model's value at that date. RQ1 runs from 1970.
 - A calendar year Y as a projection target means January 1 of Y (decimal year Y.0).
+- Why 1970 is the start (suggested reason, not yet confirmed by the group): from 1970 the census is about every 5 years, giving enough points to calibrate and validate, and the period covers the industrial growth and in-migration the model represents.
 
-**Next:** enter the vital statistics and the 2024 census row, then run `python -m scripts.run_all` for the first real results, and check them carefully. Get group confirmation of D1 to D5. Continue the lessons (Lesson 2 questions still open).
+**Next:** get group/adviser answer on Option A vs B. Save the PSA source files in `data/sources/`. Find a cited source for D5. Continue the lessons (stopped after Lesson 2; Lesson 2 questions still open). Groupmates: concept map, paper sections using the results in `results/` and README.

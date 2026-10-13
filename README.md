@@ -8,10 +8,9 @@ checks that the code solves them correctly (verification), compares them with
 census data (validation), and uses them for sensitivity analysis and scenario
 projections.
 
-> **Status:** the code is complete and tested with TEST VALUES. The real
-> results need the vital statistics (births and deaths, 1970 to 2024) and the
-> 2024 census row, which are still being entered. Until then, real-data runs
-> stop with a message saying what is missing.
+> **Status:** code complete and run on real data (census 1970 to 2024, PSA
+> births and deaths 2015 to 2024). The method for net migration (Option A,
+> below) is **provisional** until the group and adviser confirm it.
 
 ## The models
 
@@ -20,38 +19,54 @@ projections.
 | V1: birth-death | dN/dt = (b − d) N | (basic model) |
 | V2: logistic + net migration | dN/dt = r N (1 − N/K) + M | unlimited resources (K), closed population (M) |
 
-- N: population (persons), t: years since the 1970 census
-- b, d: births and deaths per person per year (from vital statistics)
-- r: intrinsic growth rate (per year), K: carrying capacity (persons), both calibrated
-- M: net migration (persons per year), from the demographic balancing equation
+- N: population (persons), t: years since the 1970 census (May 6, 1970)
+- V1: r = b − d (per year), fitted to the 1970 to 2010 census
+- V2: r (per year), K (persons), and M (persons per year), all fitted to the 1970 to 2010 census
 - V2 equilibrium: N* = (K/2) [1 + sqrt(1 + 4M/(rK))]
 
 Both models are solved with Euler's method (dt = 0.1 year). RK4 is used as a cross-check.
 
-## Research questions
+### How net migration is handled (Option A, provisional)
 
-| RQ | Question | Script |
-|---|---|---|
-| RQ1 | How accurately do V1 and V2 reproduce the 2015 to 2024 census? | `scripts/rq1_validation.py` |
-| RQ2 | Which parameter (r, K, M) most affects the projected 2050 population? | `scripts/rq2_sensitivity.py` |
-| RQ3 | How does net migration affect long-term population and equilibrium? | `scripts/rq3_migration.py` |
-| RQ4 | What population does the model project for 2030, 2040, 2050 under scenarios? | `scripts/rq4_forecast.py` |
+Registered births and deaths before 2015 are not available online, so M cannot
+be taken from the balancing equation for the 1970 to 2010 calibration period.
+Instead, M is fitted from the census together with r and K. The fitted M is
+negative (about −159,000 per year), which is not realistic: with PSA births and
+deaths, the balancing equation M = (population change) − (births − deaths) gives
+
+| Period | Observed net migration (PSA data) |
+|---|---|
+| 2015–2020 | +212,394 persons per year |
+| 2020–2024 | +71,383 persons per year |
+
+So the fitted M is a fitting number, not real migration. The likely reason is
+that real migration changes over time, while the model assumes one constant M
+for 1970 to 2050. The observed values are used as real-data migration levels in
+RQ3 and RQ4, and as a check of the fitted M.
+
+## Research questions and main results
 
 All projections are **projections under stated assumptions, not predictions**.
+
+| RQ | Question | Result (real data) | Script |
+|---|---|---|---|
+| RQ1 | How accurately do V1 and V2 reproduce the 2015 to 2024 census? | Validation MAPE: V1 11.97%, V2 0.93% | `scripts/rq1_validation.py` |
+| RQ2 | Which parameter (r, K, M) most affects the projected 2050 population? | K (swing 42.7%), then r (13.7%), then M (11.5%), with ranges ± 2 standard errors | `scripts/rq2_sensitivity.py` |
+| RQ3 | How does net migration affect long-term population and equilibrium? | N* from 22.0 million (fitted M) to 24.1 million (M = 0) to 26.4 million (M = 2015–2020 level) | `scripts/rq3_migration.py` |
+| RQ4 | What population does the model project for 2030, 2040, 2050? | 2050: baseline 20.9 million, lower growth rate 20.5 million, high migration 22.7 million | `scripts/rq4_forecast.py` |
+
+Tables (CSV) and graphs (PNG) are in `results/`.
 
 ## How it works
 
 ```
-data/calabarzon_census.csv ──► load_census ──┐
-                                             ├─► net migration by period (balancing equation)
-data/calabarzon_vital_stats.csv ─► load_vital_stats ┘        │
-                                                             ▼
-                                         b, d, M averaged over 1970–2010
-                                                             │
-                                                             ▼
-                              r, K calibrated on 1970–2010 census (curve_fit, Euler)
-                                                             │
-                     ┌───────────────┬───────────────┬───────┴───────┐
+data/calabarzon_census.csv ──► load_census ──► fit V1 (r) and V2 (r, K, M)
+                                               on census 1970–2010 (curve_fit, Euler)
+                                                        │
+data/calabarzon_vital_stats.csv ──► balancing equation  │
+   (births, deaths 2015–2024)       observed M per period
+                                         │              │
+                     ┌───────────────┬───┴───────────┬──┴────────────┐
                      ▼               ▼               ▼               ▼
                     RQ1             RQ2             RQ3             RQ4
               (validation)    (sensitivity)    (migration)     (scenarios)
@@ -67,12 +82,12 @@ src/
   exact.py         exact_v1, exact_logistic, equilibrium_v2 (for verification)
   data_loader.py   load_census, load_vital_stats (with data checks)
   migration.py     events_between, net_migration_by_period, average_over_periods
-  calibration.py   sse, rmse, mape, calibrate_v2
-  baseline.py      shared setup for the results scripts (data -> b, d, M -> r, K)
+  calibration.py   sse, rmse, mape, calibrate_v1, calibrate_v2
+  baseline.py      shared setup: fit V1 and V2, observed migration, projections
   plot_style.py    shared graph colors and styling
 scripts/
-  net_migration.py, rq1_validation.py, rq2_sensitivity.py,
-  rq3_migration.py, rq4_forecast.py, run_all.py
+  rq1_validation.py, rq2_sensitivity.py, rq3_migration.py, rq4_forecast.py,
+  net_migration.py (check of the fitted M), run_all.py
   test_run.py, plot_verification.py (early TEST VALUES demos)
 tests/
   verify.py               12 verification tests of the solvers
@@ -114,21 +129,19 @@ With `--test`, scripts use the TEST VALUES files in `tests/data/`, and their
 outputs are named `results/TEST_*` (ignored by Git). TEST VALUES outputs are not
 CALABARZON results.
 
-## Assumptions and provisional choices
+## Assumptions and limitations
 
 - r, K, and M are constant over time; one population for the whole region (no age groups).
 - Calibration uses census years 1970 to 2010; 2015, 2020, and 2024 are kept for validation.
-- Projections start from the latest census count.
-- The following are **provisional** and still need confirmation by the group:
-  - D1: a calendar year partly inside a census period counts in proportion to the part inside.
-  - D2: b and d = total births and deaths / person-years, 1970 to 2010.
-  - D3: M = average yearly net migration, 1970 to 2010, held fixed during calibration.
-  - D4: sensitivity ranges: r and K ± 2 standard errors; M from the smallest to the largest observed period value.
-  - D5: scenario size (10% lower births or 10% higher deaths per person), still needs a cited source.
+- Projections start from the 2024 census count.
+- The fitted M is negative while observed migration is positive (see above).
+- Births and deaths are registered counts, not adjusted for under-registration.
+- RQ2 ranges are fitted value ± 2 standard errors; these can be narrower than the real uncertainty.
+- The RQ4 "lower growth rate" size (r 10% lower) is a placeholder that still needs a cited source.
 
 ## Data sources
 
-Census population: Philippine Statistics Authority (PSA). The exact table and
-link for every row are in the `source` column of `data/calabarzon_census.csv`,
-and the original files are in `data/sources/`. Entry rules and pitfalls
-(Lucena City, Aurora, Rizal boundaries) are in `data/README.md`.
+Philippine Statistics Authority (PSA). The exact table and link for every row
+are in the `source` column of `data/calabarzon_census.csv` and
+`data/calabarzon_vital_stats.csv`. Census files are in `data/sources/`. Entry
+rules and pitfalls (Lucena City, Aurora, Rizal boundaries) are in `data/README.md`.
